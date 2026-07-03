@@ -1,0 +1,31 @@
+kind = "web"
+previewPath = "/"
+title = "Agrivest"
+version = "1.0.0"
+id = "artifacts/agrivest"
+router = "path"
+
+[[integratedSkills]]
+name = "react-vite"
+version = "1.0.0"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 22226
+
+[services.development]
+run = "pnpm --filter @workspace/agrivest run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/agrivest", "run", "build" ]
+publicDir = "artifacts/agrivest/dist/public"
+serve = "static"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "22226"
+BASE_PATH = "/"

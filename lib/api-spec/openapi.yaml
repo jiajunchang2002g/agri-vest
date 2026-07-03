@@ -3,13 +3,17 @@ info:
   # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: Agrivest - Agricultural Crowdfunding dApp API
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: campaigns
+    description: Crowdfunding campaign operations
+  - name: investments
+    description: Investment operations
 paths:
   /healthz:
     get:
@@ -24,6 +28,268 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  /campaigns:
+    get:
+      operationId: listCampaigns
+      tags: [campaigns]
+      summary: List all campaigns
+      description: Returns all crowdfunding campaigns with optional filtering
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [active, funded, expired, cancelled]
+        - name: category
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: List of campaigns
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Campaign"
+    post:
+      operationId: createCampaign
+      tags: [campaigns]
+      summary: Create a new campaign
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CampaignInput"
+      responses:
+        "201":
+          description: Campaign created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Campaign"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /campaigns/stats:
+    get:
+      operationId: getCampaignStats
+      tags: [campaigns]
+      summary: Get platform statistics
+      description: Returns aggregate stats for the platform dashboard
+      responses:
+        "200":
+          description: Platform stats
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PlatformStats"
+
+  /campaigns/{id}:
+    get:
+      operationId: getCampaign
+      tags: [campaigns]
+      summary: Get a campaign by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Campaign details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Campaign"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    patch:
+      operationId: updateCampaign
+      tags: [campaigns]
+      summary: Update a campaign
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CampaignUpdate"
+      responses:
+        "200":
+          description: Campaign updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Campaign"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /campaigns/{id}/invest:
+    post:
+      operationId: investInCampaign
+      tags: [investments]
+      summary: Invest in a campaign via XRPL escrow
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/InvestmentInput"
+      responses:
+        "201":
+          description: Investment created with escrow
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Investment"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /campaigns/{id}/release:
+    post:
+      operationId: releaseEscrow
+      tags: [investments]
+      summary: Release escrow funds to farmer when goal is met
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Escrow released
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EscrowResult"
+        "400":
+          description: Cannot release escrow
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /campaigns/{id}/cancel:
+    post:
+      operationId: cancelEscrow
+      tags: [investments]
+      summary: Cancel escrow and return funds to investors
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Escrow cancelled, funds returned
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EscrowResult"
+        "400":
+          description: Cannot cancel escrow
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /campaigns/{id}/investments:
+    get:
+      operationId: listCampaignInvestments
+      tags: [investments]
+      summary: List investments for a campaign
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: List of investments
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Investment"
+
+  /wallet/{address}/campaigns:
+    get:
+      operationId: getWalletCampaigns
+      tags: [campaigns]
+      summary: Get campaigns by wallet address
+      parameters:
+        - name: address
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Campaigns owned by wallet
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Campaign"
+
+  /wallet/{address}/investments:
+    get:
+      operationId: getWalletInvestments
+      tags: [investments]
+      summary: Get investments by wallet address
+      parameters:
+        - name: address
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Investments made by wallet
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Investment"
+
 components:
   schemas:
     HealthStatus:
@@ -34,3 +300,194 @@ components:
       required:
         - status
 
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+      required:
+        - error
+
+    Campaign:
+      type: object
+      required:
+        - id
+        - title
+        - description
+        - farmerWallet
+        - farmerName
+        - goalAmount
+        - currentAmount
+        - deadline
+        - category
+        - status
+        - createdAt
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        description:
+          type: string
+        farmerWallet:
+          type: string
+        farmerName:
+          type: string
+        goalAmount:
+          type: number
+        currentAmount:
+          type: number
+        deadline:
+          type: string
+        category:
+          type: string
+        status:
+          type: string
+          enum: [active, funded, expired, cancelled]
+        imageUrl:
+          type: ["string", "null"]
+        location:
+          type: ["string", "null"]
+        escrowSequence:
+          type: ["integer", "null"]
+        escrowTxHash:
+          type: ["string", "null"]
+        investorCount:
+          type: integer
+        createdAt:
+          type: string
+        updatedAt:
+          type: string
+
+    CampaignInput:
+      type: object
+      required:
+        - title
+        - description
+        - farmerWallet
+        - farmerName
+        - goalAmount
+        - deadline
+        - category
+      properties:
+        title:
+          type: string
+          minLength: 3
+        description:
+          type: string
+          minLength: 10
+        farmerWallet:
+          type: string
+        farmerName:
+          type: string
+        goalAmount:
+          type: number
+          minimum: 1
+        deadline:
+          type: string
+        category:
+          type: string
+        imageUrl:
+          type: string
+        location:
+          type: string
+
+    CampaignUpdate:
+      type: object
+      properties:
+        title:
+          type: string
+        description:
+          type: string
+        imageUrl:
+          type: string
+        location:
+          type: string
+
+    Investment:
+      type: object
+      required:
+        - id
+        - campaignId
+        - investorWallet
+        - amount
+        - status
+        - createdAt
+      properties:
+        id:
+          type: integer
+        campaignId:
+          type: integer
+        investorWallet:
+          type: string
+        investorName:
+          type: ["string", "null"]
+        amount:
+          type: number
+        txHash:
+          type: ["string", "null"]
+        escrowSequence:
+          type: ["integer", "null"]
+        status:
+          type: string
+          enum: [pending, escrowed, released, returned]
+        createdAt:
+          type: string
+
+    InvestmentInput:
+      type: object
+      required:
+        - investorWallet
+        - amount
+      properties:
+        investorWallet:
+          type: string
+        investorName:
+          type: string
+        amount:
+          type: number
+          minimum: 1
+
+    EscrowResult:
+      type: object
+      required:
+        - success
+        - message
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+        txHash:
+          type: ["string", "null"]
+
+    PlatformStats:
+      type: object
+      required:
+        - totalCampaigns
+        - activeCampaigns
+        - totalFunded
+        - totalInvestors
+        - totalXrpRaised
+        - categoryCounts
+      properties:
+        totalCampaigns:
+          type: integer
+        activeCampaigns:
+          type: integer
+        totalFunded:
+          type: integer
+        totalInvestors:
+          type: integer
+        totalXrpRaised:
+          type: number
+        categoryCounts:
+          type: array
+          items:
+            type: object
+            required: [category, count]
+            properties:
+              category:
+                type: string
+              count:
+                type: integer
